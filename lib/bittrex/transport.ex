@@ -28,7 +28,7 @@ defmodule Bittrex.Api.Transport do
   def handle_call({:get, command, params}, _from, state) do
     {url, signature} = get_api_params(command, params)
     headers = %{"Content-Type" => "application/x-www-form-urlencoded", "apisign" => signature}
-    opts = [recv_timeout: get_recv_timeout]
+    opts = [recv_timeout: get_recv_timeout()]
     case HTTPoison.get(url, headers, opts) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body, headers: headers}} ->
         reply = parse_res(body, headers)
@@ -46,7 +46,7 @@ defmodule Bittrex.Api.Transport do
         case Poison.decode(body) do
           {:ok, %{"success" => true, "result" => json}} -> {:ok, json}
           {:ok, %{"success" => false, "message" => error}} -> {:error, %Bittrex.Api.Error{message: error}}
-          {:error, e} -> {:error, %Bittrex.Api.Error{message: body}}
+          {:error, _} -> {:error, %Bittrex.Api.Error{message: body}}
         end
       _ ->
         {:error, %Bittrex.Api.Error{message: body}}
@@ -77,15 +77,14 @@ defmodule Bittrex.Api.Transport do
   end
 
   defp get_bittrex_key do
-    Application.get_env(:bittrex_elixir, :key) || System.get_env("BITTREX_KEY") || @bittrex_key
+    System.get_env("BITTREX_KEY") || @bittrex_key
   end
 
   defp get_bittrex_secret do
-    Application.get_env(:bittrex_elixir, :secret) || System.get_env("BITTREX_SECRET") || @bittrex_secret
+    System.get_env("BITTREX_SECRET") || @bittrex_secret
   end
 
   defp get_recv_timeout do
     Application.get_env(:bittrex_elixir, :recv_timeout) || 5_000
   end
-
 end
